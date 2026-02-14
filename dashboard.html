@@ -1,0 +1,304 @@
+
+<!DOCTYPE html>
+<html lang="pt-br" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="60"> <!-- Auto-refresh a cada 60s -->
+    <title>Sirius Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0ea5e9',
+                        secondary: '#6366f1',
+                        dark: '#0f172a',
+                        darker: '#020617',
+                        card: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        :root { color-scheme: dark; }
+    </style>
+</head>
+<body class="bg-darker text-gray-100 min-h-screen">
+
+    <!-- Navbar -->
+    <nav class="bg-card border-b border-gray-800 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="bg-primary/20 p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+                </svg>
+            </div>
+            <h1 class="text-xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">Sirius Dashboard</h1>
+        </div>
+        <div class="text-sm text-gray-400">
+            Atualizado: <span id="last-updated">Hoje</span>
+        </div>
+    </nav>
+
+    <main class="p-6 max-w-[1600px] mx-auto space-y-6">
+        
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total -->
+            <div class="bg-card p-4 rounded-xl border border-gray-800 hover:border-primary/50 transition duration-300">
+                <h3 class="text-gray-400 text-sm font-medium">Total de Solicitações</h3>
+                <p class="text-3xl font-bold mt-2 text-white" id="kpi-total">0</p>
+            </div>
+            
+            <!-- Pendentes -->
+            <div class="bg-card p-4 rounded-xl border border-gray-800 hover:border-yellow-500/50 transition duration-300">
+                <h3 class="text-gray-400 text-sm font-medium">Pendentes</h3>
+                <div class="flex items-end gap-2">
+                    <p class="text-3xl font-bold mt-2 text-yellow-400" id="kpi-pending">0</p>
+                    <span class="text-sm text-yellow-400/60 mb-1" id="kpi-pending-pct">(0%)</span>
+                </div>
+            </div>
+
+            <!-- Fora do Prazo -->
+            <div class="bg-card p-4 rounded-xl border border-gray-800 hover:border-red-500/50 transition duration-300">
+                <h3 class="text-gray-400 text-sm font-medium">Fora do Prazo</h3>
+                <div class="flex items-end gap-2">
+                    <p class="text-3xl font-bold mt-2 text-red-400" id="kpi-late">0</p>
+                    <span class="text-sm text-red-400/60 mb-1" id="kpi-late-pct">(0%)</span>
+                </div>
+            </div>
+
+             <!-- Setores -->
+            <div class="bg-card p-4 rounded-xl border border-gray-800 hover:border-green-500/50 transition duration-300">
+                <h3 class="text-gray-400 text-sm font-medium">Setores Ativos</h3>
+                <p class="text-3xl font-bold mt-2 text-green-400" id="kpi-sectors">0</p>
+            </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-card p-6 rounded-xl border border-gray-800">
+                <h3 class="text-lg font-semibold mb-4 text-gray-200">Volume por Setor</h3>
+                <div class="h-64">
+                    <canvas id="chart-sector"></canvas>
+                </div>
+            </div>
+            <div class="bg-card p-6 rounded-xl border border-gray-800">
+                <h3 class="text-lg font-semibold mb-4 text-gray-200">Top 5 Motivos</h3>
+                <div class="h-64">
+                    <canvas id="chart-motivo"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-card p-6 rounded-xl border border-gray-800 lg:col-span-1">
+                <h3 class="text-lg font-semibold mb-4 text-gray-200">Status dos Pedidos</h3>
+                <div class="h-64 flex justify-center">
+                    <canvas id="chart-status"></canvas>
+                </div>
+            </div>
+            <div class="bg-card p-6 rounded-xl border border-gray-800 lg:col-span-2">
+                 <h3 class="text-lg font-semibold mb-4 text-gray-200">Solicitações por Dia (Início)</h3>
+                <div class="h-64">
+                    <canvas id="chart-timeline"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="bg-card rounded-xl border border-gray-800 overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-200">Detalhamento</h3>
+                <input type="text" id="search-input" placeholder="Buscar..." class="bg-dark border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-primary text-gray-300">
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-400">
+                    <thead class="bg-gray-800/50 text-gray-200 uppercase font-medium text-xs">
+                        <tr>
+                            <th class="px-6 py-3">Matrícula</th>
+                            <th class="px-6 py-3">Nome</th>
+                            <th class="px-6 py-3">Setor</th>
+                            <th class="px-6 py-3">Status</th>
+                            <th class="px-6 py-3">Ocorrência</th>
+                            <th class="px-6 py-3">Prazo</th>
+                            <th class="px-6 py-3">Início</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-800" id="table-body">
+                        <!-- Rows injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-4 border-t border-gray-800 text-center text-xs text-gray-500">
+                Mostrando <span id="row-count">0</span> registros
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Inject Data from Python
+        const rawData = [{"Matricula": "Matricula\nTODOS\n466060.1.1\n472324.1.2\n0.279089.0\n95551.4.0\n64774.1.3\n449536.1.1\n479235.1.0\n95553.353.0\n473156.6.1\n4653.128305.0\n4653.731.2\n456692.1.2\n4653.112382.0\n96483.8240.0\n476756.1.0\n0.6764975.0\n0.2415532.0\n4653.53678.0\n4653.64282.0\n478429.1.1\n4653.133092.1\n0.756486.0\n4653.116558.0\n87145.1.0\n417137.1.2\n95127.6472.0\n4653.29725.0\n0.655906.1\n480882.1.0\n95553.375.0\n0.9223002.0\n0.738263.0\n4653.14193.0\n131292.10.0\n130317.3822.1\n4653.49179.4\n0.1139687.2\n0.6784135.0\n95143.2503.0\n0.8063519.0\n4653.73518.0\n0.1029266.1\n455924.1.0\n131003.82373.0\n0.735641.0\n0.9055471.0\n0.9453438.0\n0.6646463.0\n0.1012202.0\n0.9364318.0\n4653.10585.1\n435016.1.0\n95488.7.0\n4653.67635.0\n466334.1.0\n467045.3.1\n0.720332.0\n0.2414296.0\n4653.71684.0\n4653.15668.1\n4653.1574.0\n4653.1574.1\n4653.64781.1\n4653.853.1\n4653.127202.0\n0.9274602.0\n4653.95218.0\n995.25.0\n4653.73497.0\n0.9360282.0\n95556.17.0\n0.8726918.1\n95314.377.0\n95136.3308.0\n95476.255.0\n0.9499469.0\n96482.7292.0\n0.9156324.0", "Nome": "Nome\nTODOS\nBENTO ALVES MENACHO DA ROCHA\nPEDRO DA SILVA DE SOUZA\nPEDRO ALCANTARA FRAGA DA GAMA\nPEDRO LUCAS DAMASCENO SANTANA\nRAFAEL FORTES BERTOLOSSI\nMARCELLE DE SOUZA AZEVEDO\nGUILHERME DA SILVA DE LIMA\nGABRIELA DE SOUZA RIBEIRO\nGABRIELA RIBEIRO SILVA\nERIKA THEBALDI DE MIRANDA\nMARCELO NOGUEIRA RIBEIRO\nLARA RUBACK PEREIRA\nHEIDER BATISTA CUSTODIO\nLUDMILA BARRETO DE SOUZA OLIVEIRA\nTATIANA AZEVEDO DE OLIVEIRA MARTINS\nGABRIEL DE SOUSA XAVIER\nJOSEILDA VIEIRA DE LIMA\nSYLVIA GIL SALGADO\nANDREA CARDOSO DOS SANTOS\nIGNACIO NICOLAS BATISTA HALVERSEN\nPEDRO RODRIGUES GUIMARAES SOARES\nANA VICTORIA LIMA DIAS\nDANUBIA DA SILVA GALDINO\nLEONARDO JUNIOR DA SILVA MARIANO\nGUSTAVO PEREIRA RAMALHO\nVANESSA PEREIRA DA COSTA VASCONCELOS\nANTONIO CARLOS CARVALHO DA COSTA\nELIANE DUARTE DO NASCIMENTO DE MENDONCA\nJULIANA DAS NEVES MURTA CALEIRA\nPAULA RENATA DO REGO HURST\nANA KATYA DE SOUZA POVOLERI FERREIRA\nJOAO LUCAS FERREIRA DE SOUSA SANTOS\nLUCIANA DE SOUZA ALMEIDA\nLUZINETE LEONARDO DOS SANTOS\nSANDRA CRISTINA DE ANDRADE BISPO\nMARCIO MORAES NUNES MORETZSOHN DE MELLO\nJESSICA CONCEICAO DE ABREU\nLORRAN HENRIQUE DA COSTA OLIVEIRA\nJULIANA JESSICA BARBOSA COSTA\nGIUSEPPE MANNARINO\nLUCIANA ALMEIDA MADEIRA MACIEL\nLANA DE SOUZA NASCIMENTO CUNHA\nROBERTA KELLY CARDOSO GOMES\nTAISA AMARO DE SOUZA\nJANE DA SILVA DE ARAUJO\nNIVEA MARIA DE OLIVEIRA CORLETE\nVALENTINA DE ARAUJO MARQUES\nGIOVANNA NASCIMENTO GOUVEA\nMARIA DAS GRACAS CARVALHO MOREIRA\nDAVID BARBOSA PACHECO\nISADORA DA SILVA SOARES CASTANHEIRA\nELAINE RODRIGUES CARVALHO\nFATIMA MARIA DE OLIVEIRA CANELLAS DA SILVA\nASCENDINO RODRIGUES DE ARAUJO\nJULIA VIEIRA DA SILVA TOME\nLUANA DA SILVA RAMOS\nCLAUDIA REGINA VILELA CARVALHO\nROBERTA CRISTINA AMORIM TEIXEIRA\nAMANDA CARVALHEIRA DOS SANTOS\nPRISCILA TALLITA NOGUEIRA GUIMARAES\nFLAVIO JOSE DO CARMO\nANDREA MONTEIRO BRITO DOO CARMO\nRODRIGO SOUZA DA COSTA\nDAVI SANTOS DE SOUZA CRUZ\nSILVANA ADRE GONCALVES\nTEREZINHA DE JESUS ALVES VIEIRA\nGUSTAVO FERNANDO PAES\nBENEFICIARIO RECLAME AQUI NAO LOCALIZADO\nPATRICIA DE CASTRO CARDOSO BRANCO\nDIANA MENEZES RODRIGUES\nISABELLE ROBERTO ZINE\nJOSUE DE CARVALHO TEIXEIRA VIEIRA\nJHENIFER ALAO ROSA SAMPAIO\nGIOVANNA PINTO FERNANDES\nERICA SILVEIRA DA SILVA\nVINICIUS NASCIMENTO COUTINHO RAMOS\nMARIO DE MOURA FERREIRA\nERIKA CRISTINA NUNES DA CRUZ", "Ficha": "Ficha\nTODOS\n30922220251030032740\n30922220251114061541\n30922220251230048986\n30922220260102018265\n30922220260109005258\n30922220260122090869\n30922220260128071169\n30922220260128050964\n30922220260128001354\n30922220260213010876\n30922220260213039150\n30922220260210085970\n30922220260214008363\n30922220260211045759\n30922220260211066070\n30922220260211085467\n30922220260210092754\n30922220260211046173\n30922220260212012685\n30922220260212067384\n30922220260212067520\n30922220260212070661\n30922220260212078177\n30922220260213011092\n30922220260212075620\n30922220260212075952\n30922220260212080449\n30922220260213008040\n30922220260213014218\n30922220260213023938\n30922220260213039042\n30922220260213046361\n30922220260214001134\n30922220260214001904\n30922220260211044512\n30922220260211060204\n30922220260211069007\n30922220260213014358\n30922220260213023488\n30922220260213024756\n30922220260213029012\n30922220260213029994\n30922220260213031563\n30922220260213031757\n30922220260213036310\n30922220260213040318\n30922220260213054155\n30922220260214009290\n30922220260214009834\n30922220260214011240\n30922220260210065792\n30922220260212072152\n30922220260211001266\n30922220260213016078\n30922220260213036102\n30922220260213037190\n30922220260212053752\n30922220260212054257\n30922220260212076460\n30922220260213023463\n30922220260213048123\n30922220260213048159\n30922220260214007632\n30922220260214014183\n30922220260213000682\n30922220260213042757\n30922220260123045976\n30922220260203068517\n30922220260204057899\n30922220260205012177\n30922220260206065324\n30922220260206079369\n30922220260210024440\n30922220260210033312\n30922220260210040755\n30922220260210041479\n30922220260211010606\n30922220260211030511\n30922220260212013905\n30922220260212069406", "Prioridade": "Prioridade\nTODOS\nPRIORIDADE", "FollowUp": "Follow Up\nTODOS\nFOLLOW UP", "Setor": "Setor / Sub Setor\nTODOS\nGEREL / BACKOFFICE ADM", "Status": "Status\nTODOS\nPENDENTE", "Usuario": "Usuario\nTODOS\nEBORGES\nBRENDO\nSABREU\nRLVIEIRA\nNSILVA\nSUELEN\nRITAC", "Macro": "Macro\nTODOS\nSOLICITA\u00c7\u00c3O\nLIMINAR - GEJUR\nRECLAMA\u00c7\u00c3O", "Ocorrencia": "Ocorr\u00eancia\nTODOS\nGARANTIA DE ATENDIMENTO\nLIMINAR\nFINANCEIRO\nDESCUMPRIMENTO\nAUTORIZA\u00c7\u00c3O\nDOCUMENTOS\nATENDIMENTO\nCADASTRO\nOUVIDORIA\nPROCEDIMENTOS\nCANCELAMENTO", "Motivo": "Motivo\nTODOS\nTERAPIA 10 DIAS (COM AN\u00c1LISE M\u00c9DICA)\nTERAPIAS\nDEVOLU\u00c7\u00c3O DE VALORES\nREEMBOLSO\nCONSULTA 14 DIAS\nELETIVO\nNEGATIVA M\u00c9DICA\nRECLAME AQUI\nSUGEST\u00d5ES\nDIVERG\u00caNCIA\nDIVERGENTES\nPOSICIONAMENTO\nGRAVA\u00c7\u00c3O\nAN\u00c1LISE DE COBERTURA\nBOLETO COM DIVERG\u00caNCIA\nPLANO M\u00c9DICO\nDECLARA\u00c7\u00d5ES DIVERSAS", "SubMotivo": "Sub Motivo\nTODOS\nTERAPIAS MULTIDISCIPLINARES\nGEJUR\nPLANO INDIVIDUAL\nN\u00c3O RECEBIMENTO\nDEMAIS ESPECIALIDADES\nPOSICIONAMENTO DA DIVERGENCIA TECNICA\nAN\u00c1LISE DE REEMBOLSO EXCEPCIONAL\nENVIO DE DECLARA\u00c7\u00c3O\nPREFEITURA\nPOSICIONAMENTO\nALTERA\u00c7\u00c3O DE DADOS PARA PAGAMENTO\nDIVERSAS\nDIVERG\u00caNCIA PLANO DA ANS\nDECLARA\u00c7\u00c3O DE PORTABILIDADE\nDISCORDA DO POSICIONAMENTO\nENVIO DE GRAVA\u00c7\u00c3O\nMEDICAMENTOS\nEXCLUS\u00c3O BENEFICI\u00c1RIO PREFEITURA\nCIRURGIA COM M\u00c9DICO PARTICULAR\nENVIO DE DECLARA\u00c7\u00d5ES DIVERSAS\nRECLAME AQUI", "Inicio": "In\u00edcio\nTODOS\n30/10/2025\n14/11/2025\n30/12/2025\n02/01/2026\n09/01/2026\n22/01/2026\n28/01/2026\n13/02/2026\n10/02/2026\n14/02/2026\n11/02/2026\n12/02/2026\n23/01/2026\n03/02/2026\n04/02/2026\n05/02/2026\n06/02/2026", "TempoResolucao": "Tempo resolu\u00e7\u00e3o\nTODOS\nFORA DE PRAZO\n4 DIA(S)\n5 DIA(S)\n6 DIA(S)\n9 DIA(S)\n10 DIA(S)\n11 DIA(S)\n12 DIA(S)\n13 DIA(S)\n17 DIA(S)\n18 DIA(S)\n115 DIA(S)\n124 DIA(S)\n125 DIA(S)\n128 DIA(S)\n129 DIA(S)\n131 DIA(S)\n132 DIA(S)\n135 DIA(S)", "PrazoSetor": "Prazo Setor\nTODOS\nFORA DE PRAZO\n1 DIA(S)\n5 DIA(S)\n2 DIA(S)\n6 DIA(S)\n9 DIA(S)\n17 DIA(S)\n13 DIA(S)\n18 DIA(S)\n135 DIA(S)\n132 DIA(S)\n130 DIA(S)\n131 DIA(S)", "Conclusao": "Conclus\u00e3o\nTODOS\n05/11/2025\n18/11/2025\n07/01/2026\n09/01/2026\n10/01/2026\n28/01/2026\n01/02/2026\n03/02/2026\n12/02/2026\n13/02/2026\n18/02/2026\n19/02/2026\n20/02/2026\n23/02/2026\n24/02/2026\n25/02/2026\n26/02/2026\n27/02/2026\n03/03/2026\n04/03/2026\n09/06/2026\n18/06/2026\n19/06/2026\n22/06/2026\n23/06/2026\n25/06/2026\n26/06/2026\n29/06/2026"}, {"Matricula": "466060.1.1", "Nome": "BENTO ALVES MENACHO DA ROCHA", "Ficha": "30922220251030032740", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "EBORGES", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "GARANTIA DE ATENDIMENTO", "Motivo": "TERAPIA 10 DIAS (COM AN\u00c1LISE M\u00c9DICA)", "SubMotivo": "TERAPIAS MULTIDISCIPLINARES", "Inicio": "30/10/2025", "TempoResolucao": "FORA DE PRAZO", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "05/11/2025"}, {"Matricula": "472324.1.2", "Nome": "PEDRO DA SILVA DE SOUZA", "Ficha": "30922220251114061541", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "LIMINAR - GEJUR", "Ocorrencia": "LIMINAR", "Motivo": "TERAPIAS", "SubMotivo": "GEJUR", "Inicio": "14/11/2025", "TempoResolucao": "FORA DE PRAZO", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "18/11/2025"}, {"Matricula": "0.279089.0", "Nome": "PEDRO ALCANTARA FRAGA DA GAMA", "Ficha": "30922220251230048986", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "BRENDO", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "DEVOLU\u00c7\u00c3O DE VALORES", "SubMotivo": "PLANO INDIVIDUAL", "Inicio": "30/12/2025", "TempoResolucao": "FORA DE PRAZO", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "07/01/2026"}, {"Matricula": "95551.4.0", "Nome": "PEDRO LUCAS DAMASCENO SANTANA", "Ficha": "30922220260102018265", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "N\u00c3O RECEBIMENTO", "Inicio": "02/01/2026", "TempoResolucao": "FORA DE PRAZO", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "09/01/2026"}, {"Matricula": "64774.1.3", "Nome": "RAFAEL FORTES BERTOLOSSI", "Ficha": "30922220260109005258", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "LIMINAR - GEJUR", "Ocorrencia": "DESCUMPRIMENTO", "Motivo": "TERAPIAS", "SubMotivo": "GEJUR", "Inicio": "09/01/2026", "TempoResolucao": "FORA DE PRAZO", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "10/01/2026"}, {"Matricula": "449536.1.1", "Nome": "MARCELLE DE SOUZA AZEVEDO", "Ficha": "30922220260122090869", "Prioridade": "Prioridade", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "GARANTIA DE ATENDIMENTO", "Motivo": "CONSULTA 14 DIAS", "SubMotivo": "DEMAIS ESPECIALIDADES", "Inicio": "22/01/2026", "TempoResolucao": "FORA DE PRAZO", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "28/01/2026"}, {"Matricula": "479235.1.0", "Nome": "GUILHERME DA SILVA DE LIMA", "Ficha": "30922220260128071169", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "LIMINAR - GEJUR", "Ocorrencia": "LIMINAR", "Motivo": "TERAPIAS", "SubMotivo": "GEJUR", "Inicio": "28/01/2026", "TempoResolucao": "FORA DE PRAZO", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "01/02/2026"}, {"Matricula": "95553.353.0", "Nome": "GABRIELA DE SOUZA RIBEIRO", "Ficha": "30922220260128050964", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "AUTORIZA\u00c7\u00c3O", "Motivo": "ELETIVO", "SubMotivo": "POSICIONAMENTO DA DIVERGENCIA TECNICA", "Inicio": "28/01/2026", "TempoResolucao": "FORA DE PRAZO", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "03/02/2026"}, {"Matricula": "473156.6.1", "Nome": "GABRIELA RIBEIRO SILVA", "Ficha": "30922220260128001354", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "AN\u00c1LISE DE REEMBOLSO EXCEPCIONAL", "Inicio": "28/01/2026", "TempoResolucao": "FORA DE PRAZO", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "12/02/2026"}, {"Matricula": "4653.128305.0", "Nome": "ERIKA THEBALDI DE MIRANDA", "Ficha": "30922220260213010876", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "DOCUMENTOS", "Motivo": "NEGATIVA M\u00c9DICA", "SubMotivo": "ENVIO DE DECLARA\u00c7\u00c3O", "Inicio": "13/02/2026", "TempoResolucao": "FORA DE PRAZO", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "13/02/2026"}, {"Matricula": "4653.731.2", "Nome": "MARCELO NOGUEIRA RIBEIRO", "Ficha": "30922220260213039150", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "DEVOLU\u00c7\u00c3O DE VALORES", "SubMotivo": "PREFEITURA", "Inicio": "13/02/2026", "TempoResolucao": "4 Dia(s)", "PrazoSetor": "1 Dia(s)", "Conclusao": "18/02/2026"}, {"Matricula": "456692.1.2", "Nome": "LARA RUBACK PEREIRA", "Ficha": "30922220260210085970", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "POSICIONAMENTO", "Inicio": "10/02/2026", "TempoResolucao": "5 Dia(s)", "PrazoSetor": "5 Dia(s)", "Conclusao": "19/02/2026"}, {"Matricula": "4653.112382.0", "Nome": "HEIDER BATISTA CUSTODIO", "Ficha": "30922220260214008363", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "DEVOLU\u00c7\u00c3O DE VALORES", "SubMotivo": "PREFEITURA", "Inicio": "14/02/2026", "TempoResolucao": "5 Dia(s)", "PrazoSetor": "2 Dia(s)", "Conclusao": "19/02/2026"}, {"Matricula": "96483.8240.0", "Nome": "LUDMILA BARRETO DE SOUZA OLIVEIRA", "Ficha": "30922220260211045759", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "ALTERA\u00c7\u00c3O DE DADOS PARA PAGAMENTO", "Inicio": "11/02/2026", "TempoResolucao": "6 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "20/02/2026"}, {"Matricula": "476756.1.0", "Nome": "TATIANA AZEVEDO DE OLIVEIRA MARTINS", "Ficha": "30922220260211066070", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "SUGEST\u00d5ES", "SubMotivo": "DIVERSAS", "Inicio": "11/02/2026", "TempoResolucao": "6 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "20/02/2026"}, {"Matricula": "0.6764975.0", "Nome": "GABRIEL DE SOUSA XAVIER", "Ficha": "30922220260211085467", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "POSICIONAMENTO", "Inicio": "11/02/2026", "TempoResolucao": "6 Dia(s)", "PrazoSetor": "6 Dia(s)", "Conclusao": "20/02/2026"}, {"Matricula": "0.2415532.0", "Nome": "JOSEILDA VIEIRA DE LIMA", "Ficha": "30922220260210092754", "Prioridade": "Prioridade", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "CADASTRO", "Motivo": "DIVERG\u00caNCIA", "SubMotivo": "dIVERG\u00caNCIA PLANO DA ANS", "Inicio": "10/02/2026", "TempoResolucao": "9 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "23/02/2026"}, {"Matricula": "4653.53678.0", "Nome": "SYLVIA GIL SALGADO", "Ficha": "30922220260211046173", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "DOCUMENTOS", "Motivo": "DIVERGENTES", "SubMotivo": "DECLARA\u00c7\u00c3O DE PORTABILIDADE", "Inicio": "11/02/2026", "TempoResolucao": "9 Dia(s)", "PrazoSetor": "5 Dia(s)", "Conclusao": "23/02/2026"}, {"Matricula": "4653.64282.0", "Nome": "ANDREA CARDOSO DOS SANTOS", "Ficha": "30922220260212012685", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "SUGEST\u00d5ES", "SubMotivo": "DIVERSAS", "Inicio": "12/02/2026", "TempoResolucao": "9 Dia(s)", "PrazoSetor": "5 Dia(s)", "Conclusao": "23/02/2026"}, {"Matricula": "478429.1.1", "Nome": "IGNACIO NICOLAS BATISTA HALVERSEN", "Ficha": "30922220260212067384", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "GARANTIA DE ATENDIMENTO", "Motivo": "TERAPIA 10 DIAS (COM AN\u00c1LISE M\u00c9DICA)", "SubMotivo": "TERAPIAS MULTIDISCIPLINARES", "Inicio": "12/02/2026", "TempoResolucao": "9 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "23/02/2026"}, {"Matricula": "4653.133092.1", "Nome": "PEDRO RODRIGUES GUIMARAES SOARES", "Ficha": "30922220260212067520", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "OUVIDORIA", "Motivo": "POSICIONAMENTO", "SubMotivo": "DISCORDA DO POSICIONAMENTO", "Inicio": "12/02/2026", "TempoResolucao": "9 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "23/02/2026"}, {"Matricula": "0.756486.0", "Nome": "ANA VICTORIA LIMA DIAS", "Ficha": "30922220260212070661", "Prioridade": "Prioridade", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "BRENDO", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "GARANTIA DE ATENDIMENTO", "Motivo": "TERAPIA 10 DIAS (COM AN\u00c1LISE M\u00c9DICA)", "SubMotivo": "TERAPIAS MULTIDISCIPLINARES", "Inicio": "12/02/2026", "TempoResolucao": "9 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "23/02/2026"}, {"Matricula": "4653.116558.0", "Nome": "DANUBIA DA SILVA GALDINO", "Ficha": "30922220260212078177", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "ALTERA\u00c7\u00c3O DE DADOS PARA PAGAMENTO", "Inicio": "12/02/2026", "TempoResolucao": "9 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "23/02/2026"}, {"Matricula": "87145.1.0", "Nome": "LEONARDO JUNIOR DA SILVA MARIANO", "Ficha": "30922220260213011092", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "DOCUMENTOS", "Motivo": "GRAVA\u00c7\u00c3O", "SubMotivo": "ENVIO DE GRAVA\u00c7\u00c3O", "Inicio": "13/02/2026", "TempoResolucao": "9 Dia(s)", "PrazoSetor": "9 Dia(s)", "Conclusao": "23/02/2026"}, {"Matricula": "417137.1.2", "Nome": "GUSTAVO PEREIRA RAMALHO", "Ficha": "30922220260212075620", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "N\u00c3O RECEBIMENTO", "Inicio": "12/02/2026", "TempoResolucao": "10 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "24/02/2026"}, {"Matricula": "95127.6472.0", "Nome": "VANESSA PEREIRA DA COSTA VASCONCELOS", "Ficha": "30922220260212075952", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "N\u00c3O RECEBIMENTO", "Inicio": "12/02/2026", "TempoResolucao": "10 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "24/02/2026"}, {"Matricula": "4653.29725.0", "Nome": "ANTONIO CARLOS CARVALHO DA COSTA", "Ficha": "30922220260212080449", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "N\u00c3O RECEBIMENTO", "Inicio": "12/02/2026", "TempoResolucao": "10 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "24/02/2026"}, {"Matricula": "0.655906.1", "Nome": "ELIANE DUARTE DO NASCIMENTO DE MENDONCA", "Ficha": "30922220260213008040", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "SUGEST\u00d5ES", "SubMotivo": "DIVERSAS", "Inicio": "13/02/2026", "TempoResolucao": "10 Dia(s)", "PrazoSetor": "6 Dia(s)", "Conclusao": "24/02/2026"}, {"Matricula": "480882.1.0", "Nome": "JULIANA DAS NEVES MURTA CALEIRA", "Ficha": "30922220260213014218", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "SUGEST\u00d5ES", "SubMotivo": "DIVERSAS", "Inicio": "13/02/2026", "TempoResolucao": "10 Dia(s)", "PrazoSetor": "6 Dia(s)", "Conclusao": "24/02/2026"}, {"Matricula": "95553.375.0", "Nome": "PAULA RENATA DO REGO HURST", "Ficha": "30922220260213023938", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "SUGEST\u00d5ES", "SubMotivo": "DIVERSAS", "Inicio": "13/02/2026", "TempoResolucao": "10 Dia(s)", "PrazoSetor": "6 Dia(s)", "Conclusao": "24/02/2026"}, {"Matricula": "0.9223002.0", "Nome": "ANA KATYA DE SOUZA POVOLERI FERREIRA", "Ficha": "30922220260213039042", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "ALTERA\u00c7\u00c3O DE DADOS PARA PAGAMENTO", "Inicio": "13/02/2026", "TempoResolucao": "10 Dia(s)", "PrazoSetor": "5 Dia(s)", "Conclusao": "24/02/2026"}, {"Matricula": "0.738263.0", "Nome": "JOAO LUCAS FERREIRA DE SOUSA SANTOS", "Ficha": "30922220260213046361", "Prioridade": "Prioridade", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "GARANTIA DE ATENDIMENTO", "Motivo": "TERAPIA 10 DIAS (COM AN\u00c1LISE M\u00c9DICA)", "SubMotivo": "TERAPIAS MULTIDISCIPLINARES", "Inicio": "13/02/2026", "TempoResolucao": "10 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "24/02/2026"}, {"Matricula": "4653.14193.0", "Nome": "LUCIANA DE SOUZA ALMEIDA", "Ficha": "30922220260214001134", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "SUGEST\u00d5ES", "SubMotivo": "DIVERSAS", "Inicio": "14/02/2026", "TempoResolucao": "10 Dia(s)", "PrazoSetor": "6 Dia(s)", "Conclusao": "24/02/2026"}, {"Matricula": "131292.10.0", "Nome": "LUZINETE LEONARDO DOS SANTOS", "Ficha": "30922220260214001904", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "ALTERA\u00c7\u00c3O DE DADOS PARA PAGAMENTO", "Inicio": "14/02/2026", "TempoResolucao": "10 Dia(s)", "PrazoSetor": "5 Dia(s)", "Conclusao": "24/02/2026"}, {"Matricula": "130317.3822.1", "Nome": "SANDRA CRISTINA DE ANDRADE BISPO", "Ficha": "30922220260211044512", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "PROCEDIMENTOS", "Motivo": "AN\u00c1LISE DE COBERTURA", "SubMotivo": "MEDICAMENTOS", "Inicio": "11/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "25/02/2026"}, {"Matricula": "4653.49179.4", "Nome": "MARCIO MORAES NUNES MORETZSOHN DE MELLO", "Ficha": "30922220260211060204", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "PROCEDIMENTOS", "Motivo": "AN\u00c1LISE DE COBERTURA", "SubMotivo": "MEDICAMENTOS", "Inicio": "11/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "25/02/2026"}, {"Matricula": "0.1139687.2", "Nome": "JESSICA CONCEICAO DE ABREU", "Ficha": "30922220260211069007", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "PROCEDIMENTOS", "Motivo": "AN\u00c1LISE DE COBERTURA", "SubMotivo": "MEDICAMENTOS", "Inicio": "11/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "25/02/2026"}, {"Matricula": "0.6784135.0", "Nome": "LORRAN HENRIQUE DA COSTA OLIVEIRA", "Ficha": "30922220260213014358", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "BOLETO COM DIVERG\u00caNCIA", "SubMotivo": "PLANO INDIVIDUAL", "Inicio": "13/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "6 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "95143.2503.0", "Nome": "JULIANA JESSICA BARBOSA COSTA", "Ficha": "30922220260213023488", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "N\u00c3O RECEBIMENTO", "Inicio": "13/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "5 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "0.8063519.0", "Nome": "GIUSEPPE MANNARINO", "Ficha": "30922220260213024756", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "N\u00c3O RECEBIMENTO", "Inicio": "13/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "5 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "4653.73518.0", "Nome": "LUCIANA ALMEIDA MADEIRA MACIEL", "Ficha": "30922220260213029012", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "N\u00c3O RECEBIMENTO", "Inicio": "13/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "5 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "0.1029266.1", "Nome": "LANA DE SOUZA NASCIMENTO CUNHA", "Ficha": "30922220260213029994", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "BOLETO COM DIVERG\u00caNCIA", "SubMotivo": "PLANO INDIVIDUAL", "Inicio": "13/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "6 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "455924.1.0", "Nome": "ROBERTA KELLY CARDOSO GOMES", "Ficha": "30922220260213031563", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "N\u00c3O RECEBIMENTO", "Inicio": "13/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "5 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "131003.82373.0", "Nome": "TAISA AMARO DE SOUZA", "Ficha": "30922220260213031757", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "REEMBOLSO", "SubMotivo": "N\u00c3O RECEBIMENTO", "Inicio": "13/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "5 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "0.735641.0", "Nome": "JANE DA SILVA DE ARAUJO", "Ficha": "30922220260213036310", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "DEVOLU\u00c7\u00c3O DE VALORES", "SubMotivo": "PLANO INDIVIDUAL", "Inicio": "13/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "9 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "0.9055471.0", "Nome": "NIVEA MARIA DE OLIVEIRA CORLETE", "Ficha": "30922220260213040318", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "BOLETO COM DIVERG\u00caNCIA", "SubMotivo": "PLANO INDIVIDUAL", "Inicio": "13/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "6 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "0.9453438.0", "Nome": "VALENTINA DE ARAUJO MARQUES", "Ficha": "30922220260213054155", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "DEVOLU\u00c7\u00c3O DE VALORES", "SubMotivo": "PLANO INDIVIDUAL", "Inicio": "13/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "9 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "0.6646463.0", "Nome": "GIOVANNA NASCIMENTO GOUVEA", "Ficha": "30922220260214009290", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "BOLETO COM DIVERG\u00caNCIA", "SubMotivo": "PLANO INDIVIDUAL", "Inicio": "14/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "6 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "0.1012202.0", "Nome": "MARIA DAS GRACAS CARVALHO MOREIRA", "Ficha": "30922220260214009834", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "BOLETO COM DIVERG\u00caNCIA", "SubMotivo": "PLANO INDIVIDUAL", "Inicio": "14/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "6 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "0.9364318.0", "Nome": "DAVID BARBOSA PACHECO", "Ficha": "30922220260214011240", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "FINANCEIRO", "Motivo": "BOLETO COM DIVERG\u00caNCIA", "SubMotivo": "PLANO INDIVIDUAL", "Inicio": "14/02/2026", "TempoResolucao": "11 Dia(s)", "PrazoSetor": "6 Dia(s)", "Conclusao": "25/02/2026"}, {"Matricula": "4653.10585.1", "Nome": "ISADORA DA SILVA SOARES CASTANHEIRA", "Ficha": "30922220260210065792", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "CANCELAMENTO", "Motivo": "PLANO M\u00c9DICO", "SubMotivo": "EXCLUS\u00c3O BENEFICI\u00c1RIO PREFEITURA", "Inicio": "10/02/2026", "TempoResolucao": "12 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "26/02/2026"}, {"Matricula": "435016.1.0", "Nome": "ELAINE RODRIGUES CARVALHO", "Ficha": "30922220260212072152", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "PROCEDIMENTOS", "Motivo": "AN\u00c1LISE DE COBERTURA", "SubMotivo": "MEDICAMENTOS", "Inicio": "12/02/2026", "TempoResolucao": "12 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "26/02/2026"}, {"Matricula": "95488.7.0", "Nome": "FATIMA MARIA DE OLIVEIRA CANELLAS DA SILVA", "Ficha": "30922220260211001266", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "SABREU", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "AUTORIZA\u00c7\u00c3O", "Motivo": "ELETIVO", "SubMotivo": "CIRURGIA COM M\u00c9DICO PARTICULAR", "Inicio": "11/02/2026", "TempoResolucao": "13 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "27/02/2026"}, {"Matricula": "4653.67635.0", "Nome": "ASCENDINO RODRIGUES DE ARAUJO", "Ficha": "30922220260213016078", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "PROCEDIMENTOS", "Motivo": "AN\u00c1LISE DE COBERTURA", "SubMotivo": "MEDICAMENTOS", "Inicio": "13/02/2026", "TempoResolucao": "13 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "27/02/2026"}, {"Matricula": "466334.1.0", "Nome": "JULIA VIEIRA DA SILVA TOME", "Ficha": "30922220260213036102", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "PROCEDIMENTOS", "Motivo": "AN\u00c1LISE DE COBERTURA", "SubMotivo": "MEDICAMENTOS", "Inicio": "13/02/2026", "TempoResolucao": "13 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "27/02/2026"}, {"Matricula": "467045.3.1", "Nome": "LUANA DA SILVA RAMOS", "Ficha": "30922220260213037190", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "PROCEDIMENTOS", "Motivo": "AN\u00c1LISE DE COBERTURA", "SubMotivo": "MEDICAMENTOS", "Inicio": "13/02/2026", "TempoResolucao": "13 Dia(s)", "PrazoSetor": "FORA DE PRAZO", "Conclusao": "27/02/2026"}, {"Matricula": "0.720332.0", "Nome": "CLAUDIA REGINA VILELA CARVALHO", "Ficha": "30922220260212053752", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "RLVIEIRA", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "DOCUMENTOS", "Motivo": "DECLARA\u00c7\u00d5ES DIVERSAS", "SubMotivo": "ENVIO DE DECLARA\u00c7\u00d5ES DIVERSAS", "Inicio": "12/02/2026", "TempoResolucao": "17 Dia(s)", "PrazoSetor": "17 Dia(s)", "Conclusao": "03/03/2026"}, {"Matricula": "0.2414296.0", "Nome": "ROBERTA CRISTINA AMORIM TEIXEIRA", "Ficha": "30922220260212054257", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "DOCUMENTOS", "Motivo": "DECLARA\u00c7\u00d5ES DIVERSAS", "SubMotivo": "ENVIO DE DECLARA\u00c7\u00d5ES DIVERSAS", "Inicio": "12/02/2026", "TempoResolucao": "17 Dia(s)", "PrazoSetor": "17 Dia(s)", "Conclusao": "03/03/2026"}, {"Matricula": "4653.71684.0", "Nome": "AMANDA CARVALHEIRA DOS SANTOS", "Ficha": "30922220260212076460", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "DOCUMENTOS", "Motivo": "DECLARA\u00c7\u00d5ES DIVERSAS", "SubMotivo": "ENVIO DE DECLARA\u00c7\u00d5ES DIVERSAS", "Inicio": "12/02/2026", "TempoResolucao": "17 Dia(s)", "PrazoSetor": "17 Dia(s)", "Conclusao": "03/03/2026"}, {"Matricula": "4653.15668.1", "Nome": "PRISCILA TALLITA NOGUEIRA GUIMARAES", "Ficha": "30922220260213023463", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "CANCELAMENTO", "Motivo": "PLANO M\u00c9DICO", "SubMotivo": "EXCLUS\u00c3O BENEFICI\u00c1RIO PREFEITURA", "Inicio": "13/02/2026", "TempoResolucao": "17 Dia(s)", "PrazoSetor": "13 Dia(s)", "Conclusao": "03/03/2026"}, {"Matricula": "4653.1574.0", "Nome": "FLAVIO JOSE DO CARMO", "Ficha": "30922220260213048123", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "CANCELAMENTO", "Motivo": "PLANO M\u00c9DICO", "SubMotivo": "EXCLUS\u00c3O BENEFICI\u00c1RIO PREFEITURA", "Inicio": "13/02/2026", "TempoResolucao": "17 Dia(s)", "PrazoSetor": "13 Dia(s)", "Conclusao": "03/03/2026"}, {"Matricula": "4653.1574.1", "Nome": "ANDREA MONTEIRO BRITO DOO CARMO", "Ficha": "30922220260213048159", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "CANCELAMENTO", "Motivo": "PLANO M\u00c9DICO", "SubMotivo": "EXCLUS\u00c3O BENEFICI\u00c1RIO PREFEITURA", "Inicio": "13/02/2026", "TempoResolucao": "17 Dia(s)", "PrazoSetor": "13 Dia(s)", "Conclusao": "03/03/2026"}, {"Matricula": "4653.64781.1", "Nome": "RODRIGO SOUZA DA COSTA", "Ficha": "30922220260214007632", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "CANCELAMENTO", "Motivo": "PLANO M\u00c9DICO", "SubMotivo": "EXCLUS\u00c3O BENEFICI\u00c1RIO PREFEITURA", "Inicio": "14/02/2026", "TempoResolucao": "17 Dia(s)", "PrazoSetor": "13 Dia(s)", "Conclusao": "03/03/2026"}, {"Matricula": "4653.853.1", "Nome": "DAVI SANTOS DE SOUZA CRUZ", "Ficha": "30922220260214014183", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "CANCELAMENTO", "Motivo": "PLANO M\u00c9DICO", "SubMotivo": "EXCLUS\u00c3O BENEFICI\u00c1RIO PREFEITURA", "Inicio": "14/02/2026", "TempoResolucao": "17 Dia(s)", "PrazoSetor": "13 Dia(s)", "Conclusao": "03/03/2026"}, {"Matricula": "4653.127202.0", "Nome": "SILVANA ADRE GONCALVES", "Ficha": "30922220260213000682", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "DOCUMENTOS", "Motivo": "DECLARA\u00c7\u00d5ES DIVERSAS", "SubMotivo": "ENVIO DE DECLARA\u00c7\u00d5ES DIVERSAS", "Inicio": "13/02/2026", "TempoResolucao": "18 Dia(s)", "PrazoSetor": "18 Dia(s)", "Conclusao": "04/03/2026"}, {"Matricula": "0.9274602.0", "Nome": "TEREZINHA DE JESUS ALVES VIEIRA", "Ficha": "30922220260213042757", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "SOLICITA\u00c7\u00c3O", "Ocorrencia": "DOCUMENTOS", "Motivo": "DECLARA\u00c7\u00d5ES DIVERSAS", "SubMotivo": "ENVIO DE DECLARA\u00c7\u00d5ES DIVERSAS", "Inicio": "13/02/2026", "TempoResolucao": "18 Dia(s)", "PrazoSetor": "18 Dia(s)", "Conclusao": "04/03/2026"}, {"Matricula": "4653.95218.0", "Nome": "GUSTAVO FERNANDO PAES", "Ficha": "30922220260123045976", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "23/01/2026", "TempoResolucao": "115 Dia(s)", "PrazoSetor": "135 Dia(s)", "Conclusao": "09/06/2026"}, {"Matricula": "995.25.0", "Nome": "BENEFICIARIO RECLAME AQUI NAO LOCALIZADO", "Ficha": "30922220260203068517", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "NSILVA", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "03/02/2026", "TempoResolucao": "124 Dia(s)", "PrazoSetor": "132 Dia(s)", "Conclusao": "18/06/2026"}, {"Matricula": "4653.73497.0", "Nome": "PATRICIA DE CASTRO CARDOSO BRANCO", "Ficha": "30922220260204057899", "Prioridade": "Prioridade", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "04/02/2026", "TempoResolucao": "125 Dia(s)", "PrazoSetor": "135 Dia(s)", "Conclusao": "19/06/2026"}, {"Matricula": "0.6764975.0", "Nome": "GABRIEL DE SOUSA XAVIER", "Ficha": "30922220260205012177", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "05/02/2026", "TempoResolucao": "128 Dia(s)", "PrazoSetor": "135 Dia(s)", "Conclusao": "22/06/2026"}, {"Matricula": "0.9360282.0", "Nome": "DIANA MENEZES RODRIGUES", "Ficha": "30922220260206065324", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "06/02/2026", "TempoResolucao": "129 Dia(s)", "PrazoSetor": "135 Dia(s)", "Conclusao": "23/06/2026"}, {"Matricula": "0.9360282.0", "Nome": "DIANA MENEZES RODRIGUES", "Ficha": "30922220260206079369", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "SUELEN", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "06/02/2026", "TempoResolucao": "129 Dia(s)", "PrazoSetor": "130 Dia(s)", "Conclusao": "23/06/2026"}, {"Matricula": "95556.17.0", "Nome": "ISABELLE ROBERTO ZINE", "Ficha": "30922220260210024440", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "SUELEN", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "10/02/2026", "TempoResolucao": "131 Dia(s)", "PrazoSetor": "131 Dia(s)", "Conclusao": "25/06/2026"}, {"Matricula": "0.8726918.1", "Nome": "JOSUE DE CARVALHO TEIXEIRA VIEIRA", "Ficha": "30922220260210033312", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "10/02/2026", "TempoResolucao": "131 Dia(s)", "PrazoSetor": "135 Dia(s)", "Conclusao": "25/06/2026"}, {"Matricula": "95314.377.0", "Nome": "JHENIFER ALAO ROSA SAMPAIO", "Ficha": "30922220260210040755", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "10/02/2026", "TempoResolucao": "131 Dia(s)", "PrazoSetor": "135 Dia(s)", "Conclusao": "25/06/2026"}, {"Matricula": "95136.3308.0", "Nome": "GIOVANNA PINTO FERNANDES", "Ficha": "30922220260210041479", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "RITAC", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "10/02/2026", "TempoResolucao": "131 Dia(s)", "PrazoSetor": "135 Dia(s)", "Conclusao": "25/06/2026"}, {"Matricula": "95476.255.0", "Nome": "ERICA SILVEIRA DA SILVA", "Ficha": "30922220260211010606", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "11/02/2026", "TempoResolucao": "132 Dia(s)", "PrazoSetor": "132 Dia(s)", "Conclusao": "26/06/2026"}, {"Matricula": "0.9499469.0", "Nome": "VINICIUS NASCIMENTO COUTINHO RAMOS", "Ficha": "30922220260211030511", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "11/02/2026", "TempoResolucao": "132 Dia(s)", "PrazoSetor": "132 Dia(s)", "Conclusao": "26/06/2026"}, {"Matricula": "96482.7292.0", "Nome": "MARIO DE MOURA FERREIRA", "Ficha": "30922220260212013905", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "12/02/2026", "TempoResolucao": "135 Dia(s)", "PrazoSetor": "135 Dia(s)", "Conclusao": "29/06/2026"}, {"Matricula": "0.9156324.0", "Nome": "ERIKA CRISTINA NUNES DA CRUZ", "Ficha": "30922220260212069406", "Prioridade": "", "FollowUp": "", "Setor": "GEREL / BACKOFFICE ADM", "Status": "PENDENTE", "Usuario": "", "Macro": "RECLAMA\u00c7\u00c3O", "Ocorrencia": "ATENDIMENTO", "Motivo": "RECLAME AQUI", "SubMotivo": "RECLAME AQUI", "Inicio": "12/02/2026", "TempoResolucao": "135 Dia(s)", "PrazoSetor": "135 Dia(s)", "Conclusao": "29/06/2026"}]; 
+
+        // --- Processing Data ---
+        const total = rawData.length;
+        const pending = rawData.filter(d => d.Status && d.Status.toUpperCase().includes('PENDENTE')).length;
+        const late = rawData.filter(d => (d.TempoResolucao && d.TempoResolucao.toUpperCase().includes('FORA DE')) || (d.PrazoSetor && d.PrazoSetor.toUpperCase().includes('FORA DE'))).length;
+        const sectors = [...new Set(rawData.map(d => d.Setor))].length;
+
+        // UI Updates - KPIs
+        document.getElementById('kpi-total').innerText = total;
+        document.getElementById('kpi-pending').innerText = pending;
+        document.getElementById('kpi-pending-pct').innerText = '(' + ((pending/total)*100).toFixed(1) + '%)';
+        document.getElementById('kpi-late').innerText = late;
+        document.getElementById('kpi-late-pct').innerText = '(' + ((late/total)*100).toFixed(1) + '%)';
+        document.getElementById('kpi-sectors').innerText = sectors;
+        
+        // --- Charts Helper ---
+        function getCounts(field) {
+            const counts = {};
+            rawData.forEach(d => {
+                const val = d[field] || 'N/A';
+                counts[val] = (counts[val] || 0) + 1;
+            });
+            return Object.entries(counts).sort((a,b) => b[1] - a[1]);
+        }
+
+        // Sector Chart
+        const sectorData = getCounts('Setor').slice(0, 10);
+        new Chart(document.getElementById('chart-sector'), {
+            type: 'bar',
+            data: {
+                labels: sectorData.map(d => d[0]),
+                datasets: [{
+                    label: 'Solicitações',
+                    data: sectorData.map(d => d[1]),
+                    backgroundColor: '#0ea5e9',
+                    borderRadius: 4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#334155' } }, x: { grid: { display: false } } } }
+        });
+
+        // Top Motivos
+        const motivoData = getCounts('Motivo').slice(0, 5);
+        new Chart(document.getElementById('chart-motivo'), {
+            type: 'bar',
+            data: {
+                labels: motivoData.map(d => d[0]),
+                datasets: [{
+                    label: 'Ocorrências',
+                    data: motivoData.map(d => d[1]),
+                    backgroundColor: '#6366f1',
+                    borderRadius: 4,
+                    indexAxis: 'y'
+                }]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#334155' } }, y: { grid: { display: false } } } }
+        });
+        
+        // Status Chart
+        const statusData = getCounts('Status');
+        new Chart(document.getElementById('chart-status'), {
+            type: 'doughnut',
+            data: {
+                labels: statusData.map(d => d[0]),
+                datasets: [{
+                    data: statusData.map(d => d[1]),
+                    backgroundColor: ['#eab308', '#22c55e', '#ef4444', '#3b82f6', '#a855f7'],
+                    borderWidth: 0
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }
+        });
+
+        // Timeline
+        const timelineCounts = {};
+        rawData.forEach(d => {
+            if(d.Inicio) {
+                // Parse date assuming DD/MM/YYYY
+                const parts = d.Inicio.split('/');
+                if(parts.length === 3) {
+                    const date = parts[2] + '-' + parts[1] + '-' + parts[0]; // YYYY-MM-DD for sorting
+                    timelineCounts[date] = (timelineCounts[date] || 0) + 1;
+                }
+            }
+        });
+        const sortedDates = Object.keys(timelineCounts).sort();
+        
+        new Chart(document.getElementById('chart-timeline'), {
+            type: 'line',
+            data: {
+                labels: sortedDates.map(d => d.split('-').reverse().join('/')),
+                datasets: [{
+                    label: 'Solicitações',
+                    data: sortedDates.map(d => timelineCounts[d]),
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#334155' } }, x: { grid: { display: false } } } }
+        });
+
+        // --- Table Rendering ---
+        const tbody = document.getElementById('table-body');
+        const searchInput = document.getElementById('search-input');
+        
+        function renderTable(data) {
+            tbody.innerHTML = '';
+            // Limit to 100 rows for performance in this simple view
+            data.slice(0, 100).forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-800/50 transition duration-150';
+                
+                // Helper for status color
+                let statusColor = 'text-gray-400';
+                if(row.Status === 'PENDENTE') statusColor = 'text-yellow-400';
+                
+                // Helper for deadline color
+                let prazoClass = 'bg-gray-800 text-gray-400';
+                if(row.TempoResolucao === 'FORA DE PRAZO') prazoClass = 'bg-red-500/10 text-red-500 border border-red-500/20';
+                
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-gray-200">${row.Matricula}</td>
+                    <td class="px-6 py-4">${row.Nome}</td>
+                    <td class="px-6 py-4">${row.Setor}</td>
+                    <td class="px-6 py-4 ${statusColor}">${row.Status}</td>
+                    <td class="px-6 py-4">${row.Ocorrencia}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded text-xs ${prazoClass}">
+                            ${row.TempoResolucao}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">${row.Inicio}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('row-count').innerText = data.length;
+        }
+        
+        renderTable(rawData);
+
+        // Search functionality
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = rawData.filter(row => 
+                Object.values(row).some(val => String(val).toLowerCase().includes(term))
+            );
+            renderTable(filtered);
+        });
+
+    </script>
+</body>
+</html>
+    

@@ -1,0 +1,12 @@
+[
+  {
+    "texto": "",
+    "href": "https://sirius.assim.com.br/appdesktop/principal.php",
+    "onclick": null
+  },
+  {
+    "texto": "",
+    "href": "https://sirius.assim.com.br/appdesktop/sair.php?usuario=VIGNOLI",
+    "onclick": "Fecha();"
+  }
+]

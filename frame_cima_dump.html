@@ -1,0 +1,237 @@
+<html><head></head><body><hmtl>
+
+<meta property="og:image" content="imgnew/assweb.jpg">
+<title>Assim Desktop 2.0 - Gerenciador Web</title>
+<script src="js/jquery.min.js" type="text/javascript"></script>
+<script src="js/jquery.imgr.min.js" type="text/javascript"></script>
+
+<!--[if lt IE 9]>
+ <script src="js/IE9.js" type="text/javascript"></script>
+ <script src="js/ie7-squish.js" type="text/javascript"></script>
+<![endif]-->
+<script type="text/javascript">
+
+$(document).ready(function(){
+	$("img.foto").imgr({radius:"40px"}); //Radius é a opção do "tamanho" da borda.
+	//Utilizaremos no exemplo a classe foto. Caso seja outra classe, mude o texto de img.foto para img.[nome_da_sua_classe] 
+	
+});
+
+</script>
+
+
+
+<style>
+.branco {
+font-family:verdana;
+font-size=11px;
+font-weight:bold;
+color:#FFFFFF;
+text-align:center;
+}
+.preto {
+font-family:verdana;
+font-size=12px;
+font-weight:normal;
+color:#000000;
+text-align:center;
+}
+.pretob {
+font-family:verdana;
+font-size=12px;
+font-weight:bold;
+color:#000000;
+text-align:center;
+}
+.botao2 {
+PADDING:0;
+font-family: Arial, Helvetica, seans-serif;
+font-size: 10pt;
+font-weight: normal;
+font-style:italic;
+TEXT-TRANSFORM: lowercase;
+letter-spacing:0.1em;
+color: #000000;
+background-color:d7d8d8;
+BORDER-RIGHT: #000000 1pt solid;
+BORDER-TOP: #000000 1pt solid;
+BORDER-LEFT: #000000 1pt solid;
+BORDER-BOTTOM: #000000 1pt solid;
+background-image:url(dCinza.gif);
+MARGIN:0;
+}
+.row1 {background: #eeeeee; color: #000000; cursor:hand; font-family: Verdana,Arial, sans-serif; font-size: 10px;}
+.row2 {background: #dcdcdc; color: #000000; cursor:hand; font-family: Verdana,Arial, sans-serif; font-size: 10px;}
+.ns{
+font-family:Arial;
+font-size:11px;
+}
+A {text-decoration:none}
+A.Atalho {
+color:transparent;
+}
+.barra
+{
+scrollbar-face-color: #d9e4f1;
+scrollbar-shadow-color: #666666;
+scrollbar-highlight-color: #666666;
+scrollbar-3dlight-color: #d9e4f1;
+scrollbar-track-color: #d9e4f1;
+scrollbar-arrow-color: #666666;
+}
+</style>
+<div style="position:relative; top:0px; left:0px;">
+    <img src="imgnew/cima.png" border="0px" width="100%" height="118px">
+    <div style="position:absolute;left:20;top:0">
+      <a href="principal.php" target="_top"><img class="resimg" src="./imgnew/logo_menuA.png" onmouseover="this.src='imgnew/logo_menuE.png'" onmouseout="this.src='imgnew/logo_menuA.png'" border="0px"></a>  
+    </div>
+    <div style="position:absolute;left:13%;top:2%">
+       <img class="resimg" src="./imgnew/ANS_hor.png">    
+    </div>
+	
+</div> 
+
+<div class="tudo">
+    
+	<div class="user">
+         <img class="resimg" src="./imgnew/user.png"> 
+	</div>	 
+    
+	<div class="username texto">
+        <label>Vignoli</label>
+	</div>		
+	
+	<div class="sair">
+	
+	<a onclick="Fecha();" href="sair.php?usuario=VIGNOLI" title="" target="_top" class="ver10"><img class="resimg" src="imgnew/sair.png" onmouseover="this.src='imgnew/sairE.png'" onmouseout="this.src='imgnew/sair.png'"></a>
+	
+	</div>
+</div>
+ <script>
+  $(document).ready(function(){
+  
+  if (typeof($("div#errorPageContainer")) !== "undefined") { }
+
+  });
+ </script>
+
+
+
+</hmtl>
+
+<style>
+
+.tudo { 
+  
+  display: table;
+   left:80%;
+   top:25%;
+   position:absolute;
+   width:250px;
+
+  }
+
+.user { 
+
+    float: left;
+	width: 20%;
+	display: table-cell;
+	margin-top: 2%;
+}
+
+.username {
+	float: left;
+	width: 50%;
+	left:20px;
+	margin-top: 5%;
+} 
+
+.sair { 
+
+float: left;
+width: 30%;
+
+ }    
+  
+  
+  
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0px;
+    padding: 0px;
+}
+
+
+#cell {
+    vertical-align: middle;
+    display: table-cell;
+    _position: absolute;
+    _top: 13%;
+    _left:50%
+}
+
+#conteudo {
+    width: 1000px;
+    margin: 0 auto;
+    padding: 20px
+    border-style: 0px solid black;
+    _position: relative;
+    _top: 0%;
+    _left:-50%
+}
+
+img {
+  border: 0px;
+}
+
+.texto  { 
+
+ color:#03436f;
+ font: bold 20px Trebuchet MS;
+}
+
+@media (min-width: 1440px) {
+	
+.weather{
+	width: 870px;
+	position:absolute;
+	left:20%;
+	top:0px;
+	height: 200px;
+}	
+	
+}
+
+@media (max-width: 1439px) {
+	
+	.resimg{
+		height:70%;
+		width:70%;
+	}
+	
+	.weather{
+		width: 500px;
+		position:absolute;
+		left:30%;
+		top:0px;
+		height: 200px;
+	}	
+	
+}
+
+
+@media (max-width: 1080px) {
+
+	.resimg{
+		height:50%;
+		width:50%;
+	}
+	
+	.weather{
+		display:none;
+	}
+}
+</style>
+
+</body></html>

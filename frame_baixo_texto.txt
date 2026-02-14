@@ -1,0 +1,2 @@
+GETEC - Gerência de Tecnologia
+ versão do sistema V.2.1.0

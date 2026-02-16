@@ -69,9 +69,11 @@ def generate_dashboard():
 
                     val_matricula = row_dict["Matricula"].upper()
                     # Skip header rows and the "megarow" produced by malformed CSV blocks
-                    if (val_matricula in ["TODOS", "MATRICULA"] or 
-                        "\n" in row_dict["Matricula"] or 
-                        val_matricula.startswith("MATRICULA")):
+                    if (
+                        val_matricula in ["TODOS", "MATRICULA"]
+                        or "\n" in row_dict["Matricula"]
+                        or val_matricula.startswith("MATRICULA")
+                    ):
                         continue
 
                     data_rows.append(row_dict)
@@ -1141,10 +1143,12 @@ def generate_figma_spec(data):
     with open(spec_dir / "FIGMA_SPEC.md", "w", encoding="utf-8") as f:
         f.write(figma_spec)
 
+
 def generate_simple_html(data):
     """Gera um arquivo HTML único e auto-contido para visualização direta."""
     try:
         from datetime import datetime
+
         html_template = """
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -1453,6 +1457,40 @@ def generate_simple_html(data):
                     </div>
                 </section>
 
+                <!-- Tabela de Ocorrências -->
+                <section class="card bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Contagem por Ocorrência</h3>
+                                <p class="text-sm text-gray-500 mt-1">Análise completa com Prazo e Período</p>
+                            </div>
+                            <div class="bg-primary/10 px-4 py-2 rounded-lg">
+                                <span class="text-sm text-gray-600">Total: </span>
+                                <span class="text-lg font-bold text-primary" id="totalOcorrencias">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ocorrência</th>
+                                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
+                                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">%</th>
+                                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider text-red-600">Fora do Prazo</th>
+                                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider text-green-600">No Prazo</th>
+                                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Mais Antiga</th>
+                                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Mais Recente</th>
+                                    <th class="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Distribuição</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ocorrenciaTableBody" class="divide-y divide-gray-100">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
                 <!-- Data Table -->
                 <section id="data" class="card bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div class="p-6 border-b border-gray-100 flex items-center justify-between">
@@ -1655,6 +1693,98 @@ def generate_simple_html(data):
             }
         });
 
+        // Tabela de Ocorrências com Prazo e Período
+        const ocorrenciaData = getCounts('Ocorrencia');
+        const totalOcorrencias = ocorrenciaData.reduce((sum, [, count]) => sum + count, 0);
+        document.getElementById('totalOcorrencias').textContent = totalOcorrencias.toLocaleString('pt-BR');
+        
+        const ocorrenciaColors = ['bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-teal-500', 'bg-cyan-500', 'bg-sky-500', 'bg-blue-600', 'bg-indigo-600'];
+        
+        const ocorrenciaTbody = document.getElementById('ocorrenciaTableBody');
+        const maxOcorrenciaCount = Math.max(...ocorrenciaData.map(d => d[1]));
+        
+        // Função para converter data DD/MM/YYYY para objeto Date
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            const parts = dateStr.split('/');
+            if (parts.length !== 3) return null;
+            return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+        
+        ocorrenciaData.forEach(([ocorrencia, count], index) => {
+            const percentual = ((count / totalOcorrencias) * 100).toFixed(1);
+            const barWidth = (count / maxOcorrenciaCount) * 100;
+            const colorClass = ocorrenciaColors[index % ocorrenciaColors.length];
+            
+            // Filtrar dados desta ocorrência específica
+            const dadosOcorrencia = rawData.filter(d => d.Ocorrencia === ocorrencia);
+            
+            // Contar fora do prazo
+            const foraPrazo = dadosOcorrencia.filter(d => 
+                d.TempoResolucao?.toUpperCase().includes('FORA DE') || 
+                d.PrazoSetor?.toUpperCase().includes('FORA DE')
+            ).length;
+            
+            const noPrazo = count - foraPrazo;
+            const percentualForaPrazo = ((foraPrazo / count) * 100).toFixed(0);
+            
+            // Encontrar datas de início
+            const datasInicio = dadosOcorrencia
+                .map(d => parseDate(d.Inicio))
+                .filter(d => d !== null)
+                .sort((a, b) => a - b);
+            
+            const dataMaisAntiga = datasInicio.length > 0 
+                ? datasInicio[0].toLocaleDateString('pt-BR') 
+                : '-';
+            const dataMaisRecente = datasInicio.length > 0 
+                ? datasInicio[datasInicio.length - 1].toLocaleDateString('pt-BR') 
+                : '-';
+            
+            const tr = document.createElement('tr');
+            tr.className = 'table-row transition-colors hover:bg-gray-50';
+            tr.innerHTML = `
+                <td class="px-4 py-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full ${colorClass}"></div>
+                        <span class="text-sm font-medium text-gray-900 truncate max-w-[150px]" title="${ocorrencia}">${ocorrencia}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-4 text-center">
+                    <span class="text-sm font-bold text-gray-900">${count}</span>
+                </td>
+                <td class="px-4 py-4 text-center">
+                    <span class="text-xs text-gray-600">${percentual}%</span>
+                </td>
+                <td class="px-4 py-4 text-center">
+                    ${foraPrazo > 0 
+                        ? `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">${foraPrazo} <span class="text-red-500">(${percentualForaPrazo}%)</span></span>`
+                        : `<span class="text-xs text-gray-400">-</span>`
+                    }
+                </td>
+                <td class="px-4 py-4 text-center">
+                    ${noPrazo > 0 
+                        ? `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">${noPrazo}</span>`
+                        : `<span class="text-xs text-gray-400">-</span>`
+                    }
+                </td>
+                <td class="px-4 py-4 text-center">
+                    <span class="text-xs text-gray-600">${dataMaisAntiga}</span>
+                </td>
+                <td class="px-4 py-4 text-center">
+                    <span class="text-xs text-gray-600">${dataMaisRecente}</span>
+                </td>
+                <td class="px-4 py-4">
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 bg-gray-200 rounded-full h-2 max-w-[120px]">
+                            <div class="${colorClass} h-2 rounded-full transition-all duration-500" style="width: ${barWidth}%"></div>
+                        </div>
+                    </div>
+                </td>
+            `;
+            ocorrenciaTbody.appendChild(tr);
+        });
+
         // Timeline chart
         const timelineCounts = {};
         rawData.forEach(d => {
@@ -1734,28 +1864,30 @@ def generate_simple_html(data):
 </body>
 </html>
 """
-        
+
         # Prepare data
         data_json = json.dumps(data, ensure_ascii=False)
         last_update_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        
+
         # Replace placeholders
-        html_content = html_template.replace('REPLACE_DATA_HERE', data_json)
-        html_content = html_content.replace('REPLACE_TIME_HERE', last_update_str)
-        
+        html_content = html_template.replace("REPLACE_DATA_HERE", data_json)
+        html_content = html_content.replace("REPLACE_TIME_HERE", last_update_str)
+
         # Save file
         output_path = Path("dashboard.html")
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
-            
+
         logger.info(f"Dashboard HTML gerado: {output_path}")
         return True
-        
+
     except Exception as e:
         logger.error(f"Erro ao gerar HTML simples: {e}")
         import traceback
+
         logger.error(traceback.format_exc())
         return False
+
 
 if __name__ == "__main__":
     generate_dashboard()

@@ -10,9 +10,9 @@ logger = setup_logging()
 
 
 def generate_dashboard():
-    """Gera especificação React + TypeScript + Figma a partir do arquivo CSV mais recente."""
+    """Gera dashboard HTML atualizado a partir do arquivo CSV mais recente."""
     try:
-        logger.info("Iniciando geração da especificação React + TypeScript + Figma...")
+        logger.info("Iniciando geração do dashboard...")
 
         # 1. Encontrar o arquivo CSV mais recente e relevante
         data_dir = Path(settings.DATA_DIR)
@@ -84,16 +84,14 @@ def generate_dashboard():
             logger.warning("Nenhum dado válido encontrado no CSV.")
             return False
 
-        # 3. Gerar arquivos React + TypeScript + Figma + HTML Simples
-        generate_react_typescript_files(data_rows)
-        generate_figma_spec(data_rows)
-        generate_simple_html(data_rows)
+        # 3. Gerar dashboard HTML atualizado
+        generate_updated_dashboard_html(data_rows)
 
-        logger.info(f"Especificação gerada com sucesso em: dashboard_spec/")
+        logger.info(f"Dashboard gerado com sucesso!")
         return True
 
     except Exception as e:
-        logger.error(f"Erro ao gerar especificação: {e}")
+        logger.error(f"Erro ao gerar dashboard: {e}")
         return False
 
 
@@ -1144,6 +1142,75 @@ def generate_figma_spec(data):
         f.write(figma_spec)
 
 
+def generate_updated_dashboard_html(data):
+    """Gera o dashboard HTML atualizado com todos os dados mais recentes."""
+    try:
+        from datetime import datetime
+        import shutil
+
+        # Verificar se existe o dashboard.html atualizado na raiz
+        root_dashboard = Path("dashboard.html")
+        output_dashboard = Path("dashboard.html")
+
+        if not root_dashboard.exists():
+            logger.warning(
+                "dashboard.html não encontrado na raiz. Usando template padrão."
+            )
+            generate_simple_html(data)
+            return
+
+        # Ler o dashboard.html existente
+        with open(root_dashboard, "r", encoding="utf-8") as f:
+            html_content = f.read()
+
+        # Preparar os dados para injeção no JavaScript
+        data_json = json.dumps(data, ensure_ascii=False, indent=2)
+        timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+        # Substituir os dados no HTML
+        # Procura por: const rawData = [...]; ou const rawData = REPLACE_DATA_HERE;
+        import re
+
+        # Substituição dos dados
+        if "REPLACE_DATA_HERE" in html_content:
+            html_content = html_content.replace("REPLACE_DATA_HERE", data_json)
+        elif "const rawData = [" in html_content:
+            # Procura pelo padrão const rawData = [...];
+            pattern = r"const rawData = \[.*?\];"
+            html_content = re.sub(
+                pattern, f"const rawData = {data_json};", html_content, flags=re.DOTALL
+            )
+        else:
+            # Se não encontrar o padrão, insere após o <script>
+            script_tag = "<script>"
+            data_script = f'<script>\n        const rawData = {data_json};\n        const lastUpdate = "{timestamp}";'
+            html_content = html_content.replace(script_tag, data_script, 1)
+
+        # Substituição do timestamp
+        if "REPLACE_TIME_HERE" in html_content:
+            html_content = html_content.replace("REPLACE_TIME_HERE", timestamp)
+        elif 'const lastUpdate = "' in html_content:
+            pattern = r'const lastUpdate = "[^"]*"'
+            html_content = re.sub(
+                pattern, f'const lastUpdate = "{timestamp}"', html_content
+            )
+
+        # Salvar o arquivo atualizado
+        with open(output_dashboard, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        logger.info(f"Dashboard HTML atualizado: {output_dashboard}")
+
+        # Também gerar especificação React para referência
+        generate_react_typescript_files(data)
+        generate_figma_spec(data)
+
+    except Exception as e:
+        logger.error(f"Erro ao gerar dashboard HTML atualizado: {e}")
+        # Fallback para o método simples
+        generate_simple_html(data)
+
+
 def generate_simple_html(data):
     """Gera um arquivo HTML único e auto-contido para visualização direta."""
     try:
@@ -1292,6 +1359,13 @@ def generate_simple_html(data):
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <span class="nav-text whitespace-nowrap transition-opacity duration-200">Relatórios</span>
+                    </a>
+                    
+                    <a href="#" id="btnResponsaveis" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <span class="nav-text whitespace-nowrap transition-opacity duration-200">Responsáveis</span>
                     </a>
                 </div>
 
@@ -1475,10 +1549,10 @@ def generate_simple_html(data):
                         <table class="w-full">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ocorrência</th>
+                                    <th class="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ocorrência / Motivo / Submotivo</th>
                                     <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
                                     <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">%</th>
-                                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider text-red-600">Fora do Prazo</th>
+                                    <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider text-red-600">Fora Prazo</th>
                                     <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider text-green-600">No Prazo</th>
                                     <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Mais Antiga</th>
                                     <th class="px-4 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Mais Recente</th>
@@ -1693,7 +1767,7 @@ def generate_simple_html(data):
             }
         });
 
-        // Tabela de Ocorrências com Prazo e Período
+        // Tabela de Ocorrências com hierarquia Ocorrência → Motivo → Submotivo em uma coluna
         const ocorrenciaData = getCounts('Ocorrencia');
         const totalOcorrencias = ocorrenciaData.reduce((sum, [, count]) => sum + count, 0);
         document.getElementById('totalOcorrencias').textContent = totalOcorrencias.toLocaleString('pt-BR');
@@ -1709,6 +1783,61 @@ def generate_simple_html(data):
             const parts = dateStr.split('/');
             if (parts.length !== 3) return null;
             return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+        
+        // Função para agrupar dados por Ocorrência → Motivo → Submotivo
+        function getHierarquiaPorOcorrencia(ocorrencia) {
+            const dadosOcorrencia = rawData.filter(d => d.Ocorrencia === ocorrencia);
+            const hierarquia = {};
+            
+            dadosOcorrencia.forEach(d => {
+                const motivo = d.Motivo || 'N/A';
+                const submotivo = d.SubMotivo || 'N/A';
+                
+                if (!hierarquia[motivo]) {
+                    hierarquia[motivo] = {
+                        count: 0,
+                        foraPrazo: 0,
+                        submotivos: {}
+                    };
+                }
+                
+                hierarquia[motivo].count++;
+                
+                if (d.TempoResolucao?.toUpperCase().includes('FORA DE') || 
+                    d.PrazoSetor?.toUpperCase().includes('FORA DE')) {
+                    hierarquia[motivo].foraPrazo++;
+                }
+                
+                if (!hierarquia[motivo].submotivos[submotivo]) {
+                    hierarquia[motivo].submotivos[submotivo] = {
+                        count: 0,
+                        foraPrazo: 0,
+                        datas: []
+                    };
+                }
+                
+                hierarquia[motivo].submotivos[submotivo].count++;
+                
+                if (d.TempoResolucao?.toUpperCase().includes('FORA DE') || 
+                    d.PrazoSetor?.toUpperCase().includes('FORA DE')) {
+                    hierarquia[motivo].submotivos[submotivo].foraPrazo++;
+                }
+                
+                const data = parseDate(d.Inicio);
+                if (data) {
+                    hierarquia[motivo].submotivos[submotivo].datas.push(data);
+                }
+            });
+            
+            return Object.entries(hierarquia)
+                .sort((a, b) => b[1].count - a[1].count)
+                .map(([motivo, dados]) => ({
+                    motivo,
+                    ...dados,
+                    submotivos: Object.entries(dados.submotivos)
+                        .sort((a, b) => b[1].count - a[1].count)
+                }));
         }
         
         ocorrenciaData.forEach(([ocorrencia, count], index) => {
@@ -1741,13 +1870,15 @@ def generate_simple_html(data):
                 ? datasInicio[datasInicio.length - 1].toLocaleDateString('pt-BR') 
                 : '-';
             
-            const tr = document.createElement('tr');
-            tr.className = 'table-row transition-colors hover:bg-gray-50';
-            tr.innerHTML = `
+            // Linha principal da Ocorrência
+            const trPrincipal = document.createElement('tr');
+            trPrincipal.className = 'table-row transition-colors hover:bg-gray-50 bg-gray-50/50';
+            trPrincipal.innerHTML = `
                 <td class="px-4 py-4">
                     <div class="flex items-center gap-2">
                         <div class="w-3 h-3 rounded-full ${colorClass}"></div>
-                        <span class="text-sm font-medium text-gray-900 truncate max-w-[150px]" title="${ocorrencia}">${ocorrencia}</span>
+                        <span class="text-sm font-bold text-gray-900">${ocorrencia}</span>
+                        <span class="text-xs text-gray-500 ml-2">(${count} total)</span>
                     </div>
                 </td>
                 <td class="px-4 py-4 text-center">
@@ -1782,7 +1913,63 @@ def generate_simple_html(data):
                     </div>
                 </td>
             `;
-            ocorrenciaTbody.appendChild(tr);
+            ocorrenciaTbody.appendChild(trPrincipal);
+            
+            // Linhas dos Motivos e Submotivos
+            const hierarquia = getHierarquiaPorOcorrencia(ocorrencia);
+            hierarquia.forEach((motivoData) => {
+                // Linhas dos Submotivos com Motivo + Submotivo combinados
+                motivoData.submotivos.forEach(([submotivo, subDados]) => {
+                    const subPercentual = ((subDados.count / count) * 100).toFixed(0);
+                    const subDatas = subDados.datas.sort((a, b) => a - b);
+                    const subDataAntiga = subDatas.length > 0 
+                        ? subDatas[0].toLocaleDateString('pt-BR') 
+                        : '-';
+                    const subDataRecente = subDatas.length > 0 
+                        ? subDatas[subDatas.length - 1].toLocaleDateString('pt-BR') 
+                        : '-';
+                    
+                    const trSub = document.createElement('tr');
+                    trSub.className = 'table-row transition-colors hover:bg-gray-50 border-l-4 border-gray-200';
+                    trSub.innerHTML = `
+                        <td class="px-4 py-3 pl-8">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-400">└</span>
+                                <span class="text-sm text-gray-700">${motivoData.motivo} - ${submotivo}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="text-sm text-gray-700">${subDados.count}</span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="text-xs text-gray-500">${subPercentual}%</span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            ${subDados.foraPrazo > 0 
+                                ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600">${subDados.foraPrazo}</span>`
+                                : `<span class="text-xs text-gray-300">-</span>`
+                            }
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="text-xs text-gray-500">${subDados.count - subDados.foraPrazo}</span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="text-xs text-gray-500">${subDataAntiga}</span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="text-xs text-gray-500">${subDataRecente}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 bg-gray-100 rounded-full h-1.5 max-w-[100px]">
+                                    <div class="${colorClass} h-1.5 rounded-full opacity-60" style="width: ${subPercentual}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                    ocorrenciaTbody.appendChild(trSub);
+                });
+            });
         });
 
         // Timeline chart
@@ -1860,6 +2047,173 @@ def generate_simple_html(data):
         }
 
         renderTable(rawData);
+    </script>
+
+    <!-- Modal Responsáveis -->
+    <div id="modalResponsaveis" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-gray-900">Gerenciar Responsáveis</h2>
+                <button id="closeModalResponsaveis" class="text-gray-400 hover:text-gray-600 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 border-b border-gray-100">
+                <div class="flex items-center gap-4">
+                    <div class="flex-1">
+                        <label class="text-sm font-medium text-gray-700 mb-1.5 block">Setor</label>
+                        <select id="filterSetorModal" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+                            <option value="">Todos os setores</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-auto max-h-[60vh]">
+                <table id="tableOcorrencias" class="w-full">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ocorrência</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Motivo</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">SubMotivo</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Responsável</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-6 border-t border-gray-100 flex justify-end gap-3">
+                <button id="btnSalvarResponsavel" class="bg-primary hover:bg-primaryHover text-white px-6 py-2.5 rounded-lg text-sm font-medium transition">
+                    Salvar Responsáveis
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const btnResponsaveis = document.getElementById('btnResponsaveis');
+        const modalResponsaveis = document.getElementById('modalResponsaveis');
+        const closeModal = document.getElementById('closeModalResponsaveis');
+        const filterSetorModal = document.getElementById('filterSetorModal');
+        const tableOcorrencias = document.getElementById('tableOcorrencias');
+        const btnSalvarResponsavel = document.getElementById('btnSalvarResponsavel');
+
+        btnResponsaveis.addEventListener('click', (e) => {
+            e.preventDefault();
+            modalResponsaveis.classList.remove('hidden');
+            populateSetorFilter(filterSetorModal);
+            renderOcorrenciasModal();
+        });
+
+        closeModal.addEventListener('click', () => {
+            modalResponsaveis.classList.add('hidden');
+        });
+
+        modalResponsaveis.addEventListener('click', (e) => {
+            if (e.target === modalResponsaveis) {
+                modalResponsaveis.classList.add('hidden');
+            }
+        });
+
+        filterSetorModal.addEventListener('change', () => {
+            renderOcorrenciasModal();
+        });
+
+        function populateSetorFilter(selectElement) {
+            selectElement.innerHTML = '<option value="">Todos os setores</option>';
+            const sectors = [...new Set(rawData.map(d => d.Setor).filter(Boolean))].sort();
+            sectors.forEach(sector => {
+                const option = document.createElement('option');
+                option.value = sector;
+                option.textContent = sector;
+                selectElement.appendChild(option);
+            });
+        }
+
+        function renderOcorrenciasModal() {
+            const setorSelecionado = filterSetorModal.value;
+            const dadosFiltrados = setorSelecionado 
+                ? rawData.filter(d => d.Setor === setorSelecionado)
+                : rawData;
+
+            const ocorrenciasAgrupadas = {};
+            dadosFiltrados.forEach(d => {
+                const key = `${d.Ocorrencia || 'N/A'}|${d.Motivo || 'N/A'}|${d.SubMotivo || 'N/A'}`;
+                if (!ocorrenciasAgrupadas[key]) {
+                    ocorrenciasAgrupadas[key] = { ocorrencia: d.Ocorrencia, motivo: d.Motivo, submotivo: d.SubMotivo, responsavel: d.Responsavel || '' };
+                }
+            });
+
+            const tbody = tableOcorrencias.querySelector('tbody');
+            tbody.innerHTML = '';
+
+            Object.values(ocorrenciasAgrupadas).forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-sm text-gray-900">${item.ocorrencia || '-'}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">${item.motivo || '-'}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">${item.submotivo || '-'}</td>
+                    <td class="px-4 py-3">
+                        <input type="text" class="responsavel-campo w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" 
+                               value="${item.responsavel}" placeholder="Nome do responsável">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        btnSalvarResponsavel.addEventListener('click', () => {
+            const rows = tableOcorrencias.querySelectorAll('tbody tr');
+            rows.forEach((row, index) => {
+                const responsavel = row.querySelector('.responsavel-campo').value;
+                const setorSelecionado = filterSetorModal.value;
+                const dadosFiltrados = setorSelecionado 
+                    ? rawData.filter(d => d.Setor === setorSelecionado)
+                    : rawData;
+
+                const ocorrenciasUnicas = [...new Set(dadosFiltrados.map(d => `${d.Ocorrencia}|${d.Motivo}|${d.SubMotivo}`))];
+                if (index < ocorrenciasUnicas.length) {
+                    const [ocorrencia, motivo, submotivo] = ocorrenciasUnicas[index].split('|');
+                    dadosFiltrados.forEach(d => {
+                        if (d.Ocorrencia === ocorrencia && d.Motivo === motivo && d.SubMotivo === submotivo) {
+                            d.Responsavel = responsavel;
+                        }
+                    });
+                }
+            });
+
+            // Criar JSON com responsáveis
+            const responsaveisData = {};
+            rawData.forEach(d => {
+                if (d.Responsavel) {
+                    const key = `${d.Setor || 'N/A'}|${d.Ocorrencia || 'N/A'}|${d.Motivo || 'N/A'}|${d.SubMotivo || 'N/A'}`;
+                    responsaveisData[key] = {
+                        setor: d.Setor,
+                        ocorrencia: d.Ocorrencia,
+                        motivo: d.Motivo,
+                        submotivo: d.SubMotivo,
+                        responsavel: d.Responsavel
+                    };
+                }
+            });
+
+            // Baixar arquivo JSON
+            const jsonStr = JSON.stringify(responsaveisData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'responsaveis_' + new Date().toISOString().split('T')[0] + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            alert('Responsáveis salvos com sucesso! Arquivo JSON baixado.');
+            modalResponsaveis.classList.add('hidden');
+        });
     </script>
 </body>
 </html>
